@@ -1,0 +1,238 @@
+---
+title: 'Movies'
+description: 'Browse the movie catalog, fetch individual movies, and view movie reviews.'
+---
+
+All endpoints in this group are under the `/api/movies` base path and require a valid JWT token.
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from `/auth/login` or `/auth/register`. Format: `Bearer <token>`.
+</ParamField>
+
+---
+
+## MovieResponse object
+
+All movie endpoints return `MovieResponse` objects with the following fields.
+
+<ResponseField name="id" type="integer">
+  Unique movie identifier.
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Movie title.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Plot summary or description.
+</ResponseField>
+
+<ResponseField name="releaseDate" type="string">
+  Release date in ISO format (`YYYY-MM-DD`).
+</ResponseField>
+
+<ResponseField name="averageRating" type="number">
+  Average of all user ratings on a 0–10 scale. Recalculated each time a new review is submitted.
+</ResponseField>
+
+<ResponseField name="genres" type="string[]">
+  List of genres assigned to the movie. Possible values: `SCI_FI`, `ACTION`, `DRAMA`, `ADVENTURE`.
+</ResponseField>
+
+<ResponseField name="posterUrl" type="string">
+  URL to the movie poster image.
+</ResponseField>
+
+**Example**
+
+```json
+{
+  "id": 1,
+  "title": "Inception",
+  "description": "Filme sobre sonhos",
+  "releaseDate": "2010-07-16",
+  "averageRating": 9.60,
+  "genres": ["SCI_FI", "ACTION"],
+  "posterUrl": "https://example.com/inception.jpg"
+}
+```
+
+---
+
+## GET /api/movies
+
+Return a paginated list of all movies. Results are sorted by release date descending by default.
+
+### Query parameters
+
+<ParamField query="page" type="integer" default="0">
+  Page index, zero-based.
+</ParamField>
+
+<ParamField query="size" type="integer" default="20">
+  Number of items per page.
+</ParamField>
+
+<ParamField query="sort" type="string" default="releaseDate,desc">
+  Sort field and direction, formatted as `field,direction`. For example: `releaseDate,desc` or `title,asc`.
+</ParamField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:8080/api/movies \
+  -H "Authorization: Bearer <token>"
+```
+
+```bash cURL with pagination
+curl "http://localhost:8080/api/movies?page=1&size=10&sort=title,asc" \
+  -H "Authorization: Bearer <token>"
+```
+
+</CodeGroup>
+
+### Response
+
+**HTTP 200** — Spring `Page` wrapper containing an array of `MovieResponse` objects.
+
+```json 200
+{
+  "content": [
+    {
+      "id": 1,
+      "title": "Inception",
+      "description": "Filme sobre sonhos",
+      "releaseDate": "2010-07-16",
+      "averageRating": 9.60,
+      "genres": ["SCI_FI", "ACTION"],
+      "posterUrl": "https://example.com/inception.jpg"
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 20,
+    "sort": {
+      "sorted": true,
+      "unsorted": false,
+      "empty": false
+    }
+  },
+  "totalElements": 42,
+  "totalPages": 3,
+  "last": false,
+  "first": true,
+  "numberOfElements": 20,
+  "empty": false
+}
+```
+
+---
+
+## GET /api/movies/\{id\}
+
+Fetch a single movie by its ID.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  The movie's unique identifier.
+</ParamField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:8080/api/movies/1 \
+  -H "Authorization: Bearer <token>"
+```
+
+</CodeGroup>
+
+### Response
+
+**HTTP 200** — A single `MovieResponse` object.
+
+```json 200
+{
+  "id": 1,
+  "title": "Inception",
+  "description": "Filme sobre sonhos",
+  "releaseDate": "2010-07-16",
+  "averageRating": 9.60,
+  "genres": ["SCI_FI", "ACTION"],
+  "posterUrl": "https://example.com/inception.jpg"
+}
+```
+
+### Errors
+
+| Status | Condition |
+| ------ | --------- |
+| `404`  | No movie found with the given `id`. |
+
+---
+
+## GET /api/movies/\{id\}/reviews
+
+List all reviews submitted for a specific movie.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  The movie's unique identifier.
+</ParamField>
+
+### Response schema
+
+Each item in the returned array is a `ReviewResponse` object.
+
+<ResponseField name="id" type="integer">
+  Unique review identifier.
+</ResponseField>
+
+<ResponseField name="userName" type="string">
+  Display name of the user who submitted the review.
+</ResponseField>
+
+<ResponseField name="rating" type="number">
+  Rating given by the reviewer, on a 0–10 scale.
+</ResponseField>
+
+<ResponseField name="comments" type="string">
+  Optional review text. May be `null` if no comment was provided.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:8080/api/movies/1/reviews \
+  -H "Authorization: Bearer <token>"
+```
+
+</CodeGroup>
+
+### Response
+
+**HTTP 200** — An array of `ReviewResponse` objects.
+
+```json 200
+[
+  {
+    "id": 1,
+    "userName": "Jon",
+    "rating": 9.50,
+    "comments": "Masterpiece. The layers of dreams are mind-bending."
+  },
+  {
+    "id": 2,
+    "userName": "Maria",
+    "rating": 9.70,
+    "comments": "One of Nolan's best."
+  }
+]
+```

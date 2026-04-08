@@ -1,0 +1,173 @@
+---
+title: 'Authentication'
+description: 'How to register, log in, and authenticate requests using JWT Bearer tokens.'
+---
+
+CineFinder uses stateless JWT authentication. There are no sessions or cookies — every request must carry a signed token in the `Authorization` header. Tokens are issued at registration and login, and expire after **24 hours**.
+
+<Note>
+  The two auth endpoints (`/auth/register` and `/auth/login`) are public. All other endpoints require a valid token.
+</Note>
+
+---
+
+## Register
+
+`POST /auth/register`
+
+Creates a new user account and returns a JWT token. Passwords are stored using BCrypt hashing.
+
+### Request body
+
+<ParamField body="name" type="string" required>
+  Display name for the user.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Must be a valid email address. Used as the authentication subject in the JWT.
+</ParamField>
+
+<ParamField body="age" type="integer" required>
+  Must be provided. Pass a value of 18 or greater.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Must be at least 6 characters. Used to authenticate at `/auth/login`.
+</ParamField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8080/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Jon",
+    "email": "jon@email.com",
+    "password": "123456",
+    "age": 20
+  }'
+```
+
+</CodeGroup>
+
+**Response** — a JWT token string:
+
+```
+eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb25AZW1haWwuY29tIiwiaWF0IjoxNzA...
+```
+
+---
+
+## Login
+
+`POST /auth/login`
+
+Authenticates an existing user and returns a new JWT token.
+
+### Request body
+
+<ParamField body="email" type="string" required>
+  The email address used during registration.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  The account password.
+</ParamField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "jon@email.com",
+    "password": "123456"
+  }'
+```
+
+</CodeGroup>
+
+**Response** — a JWT token string:
+
+```
+eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb25AZW1haWwuY29tIiwiaWF0IjoxNzA...
+```
+
+---
+
+## Using the token
+
+Pass the token on every protected request using the `Authorization` header with the `Bearer` scheme:
+
+```bash
+curl http://localhost:8080/api/movies \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9..."
+```
+
+<Warning>
+  Tokens expire after 24 hours. When a token expires, re-authenticate via `/auth/login` to obtain a new one.
+</Warning>
+
+---
+
+## Role-based access
+
+CineFinder has two roles assigned at the user level.
+
+| Role | Access |
+|---|---|
+| `USER` | All `/api/**` endpoints (movies, reviews, lists) |
+| `ADMIN` | All `USER` access, plus the `/admin` endpoint |
+
+New users registered via `/auth/register` receive the `USER` role by default. The `ADMIN` role must be set directly in the database (`isAdmin = true` on the `cf_user` table).
+
+### Public endpoints (no token required)
+
+The following paths are accessible without authentication:
+
+| Path | Description |
+|---|---|
+| `POST /auth/register` | Register a new user |
+| `POST /auth/login` | Log in and get a token |
+| `GET /swagger-ui/**` | Swagger UI |
+| `GET /v3/**` | OpenAPI specification |
+
+---
+
+## Error responses
+
+### 401 Unauthorized
+
+Returned when no token is provided, the token is malformed, or the token has expired.
+
+```json
+{
+  "timestamp": "2026-04-08T12:00:00",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Full authentication is required to access this resource",
+  "path": "/api/movies"
+}
+```
+
+### 403 Forbidden
+
+Returned when a valid token is present but the user's role does not grant access to the requested resource.
+
+```json
+{
+  "timestamp": "2026-04-08T12:00:00",
+  "status": 403,
+  "error": "Forbidden",
+  "message": "Access Denied",
+  "path": "/admin"
+}
+```
+
+<Note>
+  Error responses always follow the `ErrorResponse` schema with fields: `timestamp`, `status`, `error`, `message`, and `path`.
+</Note>

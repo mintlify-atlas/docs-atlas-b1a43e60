@@ -1,0 +1,76 @@
+{
+  "projectType": "api-service",
+  "projectName": "CineFinder API",
+  "projectDescription": "A RESTful API built with Spring Boot for managing movies, user reviews, and personalized movie lists with JWT authentication.",
+  "theme": "luma",
+  "primaryColor": "#E63946",
+  "lightColor": null,
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart", "authentication"]
+          },
+          {
+            "group": "Guides",
+            "pages": ["guides/database-setup", "guides/error-handling", "guides/pagination"]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Auth",
+            "pages": ["api/auth"]
+          },
+          {
+            "group": "Movies",
+            "pages": ["api/movies", "api/reviews"]
+          },
+          {
+            "group": "Lists",
+            "pages": ["api/lists"]
+          },
+          {
+            "group": "Admin",
+            "pages": ["api/admin"]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "JWT-based authentication and authorization with role-based access control (ADMIN / USER)",
+    "Movie browsing with paginated listings, genre tagging, and average rating calculation",
+    "User reviews with create, read, and update operations and automatic rating aggregation",
+    "Personalized movie lists with full CRUD and movie add/remove support",
+    "Flyway database migrations supporting both Oracle and H2 (dev) databases",
+    "OpenAPI/Swagger UI available at /swagger-ui.html",
+    "Global exception handling with structured error responses",
+    "Spring Security stateless session with BCrypt password encoding"
+  ],
+  "publicApiSurface": [
+    "POST /auth/register",
+    "POST /auth/login",
+    "GET /api/movies",
+    "GET /api/movies/{id}",
+    "GET /api/movies/{id}/reviews",
+    "GET /api/reviews",
+    "GET /api/reviews/{id}",
+    "POST /api/reviews",
+    "PUT /api/reviews/{id}",
+    "GET /api/lists",
+    "GET /api/lists/{id}",
+    "POST /api/lists",
+    "PATCH /api/lists/{id}",
+    "DELETE /api/lists/{id}",
+    "POST /api/lists/{id}/movies/{movieId}",
+    "DELETE /api/lists/{id}/movies/{movieId}",
+    "GET /admin"
+  ]
+}

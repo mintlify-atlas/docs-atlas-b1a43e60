@@ -1,0 +1,231 @@
+---
+title: "Reviews"
+description: "Create and manage user reviews for movies."
+---
+
+All endpoints under `/api/reviews` require a valid JWT token passed in the `Authorization` header.
+
+<Note>
+  When a review is created or updated, the parent movie's `averageRating` is automatically recalculated from all its reviews.
+</Note>
+
+## The ReviewResponse object
+
+<ResponseField name="id" type="integer" required>
+  Unique review identifier.
+</ResponseField>
+
+<ResponseField name="userName" type="string" required>
+  Display name of the reviewer.
+</ResponseField>
+
+<ResponseField name="rating" type="number" required>
+  Numeric rating on a 0–10 scale.
+</ResponseField>
+
+<ResponseField name="comments" type="string">
+  Optional review text submitted by the reviewer.
+</ResponseField>
+
+```json Example
+{
+  "id": 1,
+  "userName": "Jon",
+  "rating": 8.5,
+  "comments": "Muito bom!"
+}
+```
+
+---
+
+## GET /api/reviews
+
+Returns a paginated list of all reviews.
+
+### Query parameters
+
+<ParamField query="page" type="integer" default="0">
+  Zero-based page index.
+</ParamField>
+
+<ParamField query="size" type="integer" default="20">
+  Number of items per page.
+</ParamField>
+
+### Example request
+
+```bash cURL
+curl http://localhost:8080/api/reviews?page=0&size=10 \
+  -H "Authorization: Bearer <token>"
+```
+
+### Response
+
+Returns a Spring `Page` of `ReviewResponse` objects.
+
+```json 200
+{
+  "content": [
+    {
+      "id": 1,
+      "userName": "Jon",
+      "rating": 8.5,
+      "comments": "Muito bom!"
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "size": 10,
+  "number": 0
+}
+```
+
+---
+
+## GET /api/reviews/\{id\}
+
+Returns a single review by its identifier.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  Unique identifier of the review to retrieve.
+</ParamField>
+
+### Example request
+
+```bash cURL
+curl http://localhost:8080/api/reviews/1 \
+  -H "Authorization: Bearer <token>"
+```
+
+### Response
+
+Returns a `ReviewResponse` object.
+
+```json 200
+{
+  "id": 1,
+  "userName": "Jon",
+  "rating": 8.5,
+  "comments": "Muito bom!"
+}
+```
+
+```json 404
+{
+  "timestamp": "2026-04-08T10:00:00",
+  "status": 404,
+  "error": "NoSuchElementException",
+  "message": "No value present",
+  "path": "/api/reviews/999"
+}
+```
+
+---
+
+## POST /api/reviews
+
+Creates a new review for a movie. The movie's `averageRating` is recalculated automatically after creation.
+
+### Request body
+
+<ParamField body="userId" type="integer" required>
+  ID of the user writing the review.
+</ParamField>
+
+<ParamField body="movieId" type="integer" required>
+  ID of the movie being reviewed.
+</ParamField>
+
+<ParamField body="rating" type="number" required>
+  Rating value. Must be between `0` and `10` (inclusive).
+</ParamField>
+
+<ParamField body="comments" type="string">
+  Optional free-text comments about the movie.
+</ParamField>
+
+### Example request
+
+```bash cURL
+curl -X POST http://localhost:8080/api/reviews \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": 1,
+    "movieId": 1,
+    "rating": 8.5,
+    "comments": "Muito bom!"
+  }'
+```
+
+### Response
+
+Returns `201 Created` with the newly created `ReviewResponse`.
+
+```json 201
+{
+  "id": 1,
+  "userName": "Jon",
+  "rating": 8.5,
+  "comments": "Muito bom!"
+}
+```
+
+---
+
+## PUT /api/reviews/\{id\}
+
+Replaces the rating and/or comments of an existing review. The movie's `averageRating` is recalculated automatically after the update.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  Unique identifier of the review to update.
+</ParamField>
+
+### Request body
+
+<ParamField body="rating" type="number">
+  New rating value. Must be between `0` and `10` (inclusive).
+</ParamField>
+
+<ParamField body="comments" type="string">
+  Updated review text.
+</ParamField>
+
+### Example request
+
+```bash cURL
+curl -X PUT http://localhost:8080/api/reviews/1 \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rating": 9.0,
+    "comments": "Melhor ainda na segunda vez!"
+  }'
+```
+
+### Response
+
+Returns the updated `ReviewResponse`.
+
+```json 200
+{
+  "id": 1,
+  "userName": "Jon",
+  "rating": 9.0,
+  "comments": "Melhor ainda na segunda vez!"
+}
+```
+
+```json 404
+{
+  "timestamp": "2026-04-08T10:00:00",
+  "status": 404,
+  "error": "NoSuchElementException",
+  "message": "No value present",
+  "path": "/api/reviews/1"
+}
+```

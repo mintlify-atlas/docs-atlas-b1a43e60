@@ -1,0 +1,74 @@
+---
+title: 'Introduction'
+description: 'Overview of CineFinder API — what it is, what it does, and how it is structured.'
+---
+
+CineFinder is a REST API for managing movies, reviews, and personal movie lists. Built with Spring Boot 4 and secured with stateless JWT authentication, it provides a clean, resource-oriented interface for browsing a movie catalog, writing reviews, and organizing watchlists.
+
+## What you can do
+
+| Capability | Description |
+|---|---|
+| Browse movies | List and search the movie catalog with pagination |
+| Write reviews | Create, update, and retrieve ratings and comments |
+| Manage lists | Create personal movie lists and add or remove movies |
+| Admin management | Administrators can list all registered users |
+
+## Tech stack
+
+| Component | Technology |
+|---|---|
+| Runtime | Java 17 |
+| Framework | Spring Boot 4.0, Spring Web |
+| Security | Spring Security, JWT (JJWT 0.11.5) |
+| Persistence | Spring Data JPA, Flyway migrations |
+| Databases | Oracle (production), H2 (development), PostgreSQL |
+| API docs | SpringDoc OpenAPI 3 / Swagger UI |
+| Build tool | Gradle |
+
+## Base URL
+
+All API endpoints are relative to:
+
+```
+http://localhost:8080
+```
+
+## Interactive docs
+
+Swagger UI is available at:
+
+```
+http://localhost:8080/swagger-ui.html
+```
+
+The OpenAPI JSON specification is served at `http://localhost:8080/v3/api-docs`.
+
+## Authentication overview
+
+CineFinder uses stateless JWT Bearer token authentication. Every request to a protected endpoint must include a valid token in the `Authorization` header:
+
+```
+Authorization: Bearer <token>
+```
+
+Tokens are issued by the `/auth/register` and `/auth/login` endpoints, and expire after 24 hours. No sessions or cookies are used.
+
+---
+
+## Explore the docs
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Get the API running locally and make your first authenticated request in minutes.
+  </Card>
+  <Card title="Authentication" icon="lock" href="/authentication">
+    Learn how to register, log in, and authorize requests with JWT tokens.
+  </Card>
+  <Card title="Movies" icon="film" href="/api/movies">
+    Browse the movie catalog and retrieve reviews by movie.
+  </Card>
+  <Card title="Lists" icon="list" href="/api/lists">
+    Create and manage personal movie lists.
+  </Card>
+</CardGroup>

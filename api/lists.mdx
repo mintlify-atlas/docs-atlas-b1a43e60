@@ -1,0 +1,369 @@
+---
+title: "Movie lists"
+description: "Create and manage personalized movie lists."
+---
+
+All endpoints under `/api/lists` require a valid JWT token passed in the `Authorization` header.
+
+## The MovieListResponse object
+
+<ResponseField name="id" type="integer" required>
+  Unique list identifier.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Display name of the list.
+</ResponseField>
+
+<ResponseField name="userName" type="string" required>
+  Display name of the list's owner.
+</ResponseField>
+
+<ResponseField name="movies" type="array" required>
+  Array of `MovieResponse` objects belonging to this list.
+
+  <Expandable title="MovieResponse properties">
+    <ResponseField name="id" type="integer" required>
+      Unique movie identifier.
+    </ResponseField>
+    <ResponseField name="title" type="string" required>
+      Movie title.
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      Plot summary or synopsis.
+    </ResponseField>
+    <ResponseField name="releaseDate" type="string" required>
+      Release date in `YYYY-MM-DD` format.
+    </ResponseField>
+    <ResponseField name="averageRating" type="number" required>
+      Current average rating across all user reviews, 0–10 scale.
+    </ResponseField>
+    <ResponseField name="genres" type="string[]" required>
+      Array of genre identifiers (e.g., `"SCI_FI"`, `"ACTION"`).
+    </ResponseField>
+    <ResponseField name="posterUrl" type="string">
+      URL to the movie's poster image.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+```json Example
+{
+  "id": 1,
+  "name": "Favoritos",
+  "userName": "Jon",
+  "movies": [
+    {
+      "id": 1,
+      "title": "Inception",
+      "description": "A thief who steals corporate secrets through dream-sharing technology.",
+      "releaseDate": "2010-07-16",
+      "averageRating": 9.60,
+      "genres": ["SCI_FI", "ACTION"],
+      "posterUrl": "https://example.com/posters/inception.jpg"
+    }
+  ]
+}
+```
+
+---
+
+## GET /api/lists
+
+Returns a paginated list of all movie lists.
+
+### Query parameters
+
+<ParamField query="page" type="integer" default="0">
+  Zero-based page index.
+</ParamField>
+
+<ParamField query="size" type="integer" default="20">
+  Number of items per page.
+</ParamField>
+
+### Example request
+
+```bash cURL
+curl http://localhost:8080/api/lists?page=0&size=10 \
+  -H "Authorization: Bearer <token>"
+```
+
+### Response
+
+Returns a Spring `Page` of `MovieListResponse` objects.
+
+```json 200
+{
+  "content": [
+    {
+      "id": 1,
+      "name": "Favoritos",
+      "userName": "Jon",
+      "movies": []
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "size": 10,
+  "number": 0
+}
+```
+
+---
+
+## GET /api/lists/\{id\}
+
+Returns a single movie list by its identifier, including all movies it contains.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  Unique identifier of the movie list.
+</ParamField>
+
+### Example request
+
+```bash cURL
+curl http://localhost:8080/api/lists/1 \
+  -H "Authorization: Bearer <token>"
+```
+
+### Response
+
+Returns a `MovieListResponse` object.
+
+```json 200
+{
+  "id": 1,
+  "name": "Favoritos",
+  "userName": "Jon",
+  "movies": [
+    {
+      "id": 1,
+      "title": "Inception",
+      "releaseDate": "2010-07-16",
+      "averageRating": 9.60,
+      "genres": ["SCI_FI", "ACTION"],
+      "posterUrl": "https://example.com/posters/inception.jpg"
+    }
+  ]
+}
+```
+
+```json 404
+{
+  "timestamp": "2026-04-08T10:00:00",
+  "status": 404,
+  "error": "NoSuchElementException",
+  "message": "No value present",
+  "path": "/api/lists/999"
+}
+```
+
+---
+
+## POST /api/lists
+
+Creates a new, empty movie list owned by a specific user.
+
+### Request body
+
+<ParamField body="name" type="string" required>
+  Name for the new list.
+</ParamField>
+
+<ParamField body="userId" type="integer" required>
+  ID of the user who will own the list.
+</ParamField>
+
+### Example request
+
+```bash cURL
+curl -X POST http://localhost:8080/api/lists \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Favoritos",
+    "userId": 1
+  }'
+```
+
+### Response
+
+Returns `201 Created` with the newly created `MovieListResponse`.
+
+```json 201
+{
+  "id": 1,
+  "name": "Favoritos",
+  "userName": "Jon",
+  "movies": []
+}
+```
+
+---
+
+## PATCH /api/lists/\{id\}
+
+Renames an existing movie list.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  Unique identifier of the movie list to rename.
+</ParamField>
+
+### Request body
+
+<ParamField body="name" type="string" required>
+  New name for the list.
+</ParamField>
+
+### Example request
+
+```bash cURL
+curl -X PATCH http://localhost:8080/api/lists/1 \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Clássicos"
+  }'
+```
+
+### Response
+
+Returns the updated `MovieListResponse`.
+
+```json 200
+{
+  "id": 1,
+  "name": "Clássicos",
+  "userName": "Jon",
+  "movies": []
+}
+```
+
+```json 404
+{
+  "timestamp": "2026-04-08T10:00:00",
+  "status": 404,
+  "error": "NoSuchElementException",
+  "message": "No value present",
+  "path": "/api/lists/999"
+}
+```
+
+---
+
+## DELETE /api/lists/\{id\}
+
+Permanently deletes a movie list.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  Unique identifier of the movie list to delete.
+</ParamField>
+
+### Example request
+
+```bash cURL
+curl -X DELETE http://localhost:8080/api/lists/1 \
+  -H "Authorization: Bearer <token>"
+```
+
+### Response
+
+Returns `204 No Content` on success. The list and all its movie associations are permanently removed.
+
+```json 404
+{
+  "timestamp": "2026-04-08T10:00:00",
+  "status": 404,
+  "error": "NoSuchElementException",
+  "message": "No value present",
+  "path": "/api/lists/999"
+}
+```
+
+---
+
+## POST /api/lists/\{id\}/movies/\{movieId\}
+
+Adds a movie to an existing list.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  Unique identifier of the target movie list.
+</ParamField>
+
+<ParamField path="movieId" type="integer" required>
+  Unique identifier of the movie to add.
+</ParamField>
+
+### Example request
+
+```bash cURL
+curl -X POST http://localhost:8080/api/lists/1/movies/2 \
+  -H "Authorization: Bearer <token>"
+```
+
+### Response
+
+Returns the updated `MovieListResponse` with the added movie included in `movies`.
+
+```json 200
+{
+  "id": 1,
+  "name": "Favoritos",
+  "userName": "Jon",
+  "movies": [
+    {
+      "id": 2,
+      "title": "Interstellar",
+      "releaseDate": "2014-11-07",
+      "averageRating": 9.20,
+      "genres": ["SCI_FI", "DRAMA"],
+      "posterUrl": "https://example.com/posters/interstellar.jpg"
+    }
+  ]
+}
+```
+
+---
+
+## DELETE /api/lists/\{id\}/movies/\{movieId\}
+
+Removes a movie from a list without deleting the movie itself.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  Unique identifier of the movie list.
+</ParamField>
+
+<ParamField path="movieId" type="integer" required>
+  Unique identifier of the movie to remove.
+</ParamField>
+
+### Example request
+
+```bash cURL
+curl -X DELETE http://localhost:8080/api/lists/1/movies/2 \
+  -H "Authorization: Bearer <token>"
+```
+
+### Response
+
+Returns the updated `MovieListResponse` with the movie removed from `movies`.
+
+```json 200
+{
+  "id": 1,
+  "name": "Favoritos",
+  "userName": "Jon",
+  "movies": []
+}
+```

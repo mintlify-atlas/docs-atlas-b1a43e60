@@ -1,0 +1,126 @@
+---
+title: "Pagination"
+description: "How to work with paginated responses in the CineFinder API."
+---
+
+Several CineFinder endpoints return results as paginated collections. Rather than loading all records at once, you control the page index, page size, and sort order via query parameters. The response wraps the items in a standard Spring Data `Page` envelope.
+
+<Tip>
+  Page indices are zero-based. Always start with `page=0` to retrieve the first page of results.
+</Tip>
+
+## Query parameters
+
+<ParamField query="page" type="integer" default="0">
+  Zero-based page index. Pass `0` for the first page, `1` for the second, and so on.
+</ParamField>
+
+<ParamField query="size" type="integer" default="20">
+  Number of items to return per page. The default varies by endpoint — see [Paginated endpoints](#paginated-endpoints) below.
+</ParamField>
+
+<ParamField query="sort" type="string">
+  Sort field and direction, separated by a comma. Example: `releaseDate,desc`. Multiple sort parameters can be chained: `sort=releaseDate,desc&sort=title,asc`.
+</ParamField>
+
+## Paginated endpoints
+
+| Endpoint | Default size | Default sort |
+|----------|-------------|--------------|
+| `GET /api/movies` | 20 | `releaseDate DESC` |
+| `GET /api/reviews` | 20 | unsorted |
+| `GET /api/lists` | 20 | unsorted |
+
+<Note>
+  `GET /api/movies` applies `@PageableDefault(size = 20, sort = "releaseDate", direction = DESC)`. The `/api/reviews` and `/api/lists` endpoints use Spring's default `Pageable` (size 20, no default sort). You can override any of these with query parameters.
+</Note>
+
+## Example request
+
+Fetch the first page of 10 movies sorted by release date, newest first:
+
+```bash
+curl "http://localhost:8080/api/movies?page=0&size=10&sort=releaseDate,desc" \
+  -H "Authorization: Bearer <token>"
+```
+
+Fetch the second page of reviews (items 11–20):
+
+```bash
+curl "http://localhost:8080/api/reviews?page=1&size=10" \
+  -H "Authorization: Bearer <token>"
+```
+
+## Page response structure
+
+Every paginated response is a Spring Data `Page` object. The top-level fields are:
+
+<ResponseField name="content" type="array" required>
+  The items on the current page. The object shape depends on the endpoint (e.g. `MovieResponse`, `ReviewResponse`).
+</ResponseField>
+
+<ResponseField name="totalElements" type="integer" required>
+  Total number of items across all pages.
+</ResponseField>
+
+<ResponseField name="totalPages" type="integer" required>
+  Total number of pages given the requested `size`.
+</ResponseField>
+
+<ResponseField name="number" type="integer" required>
+  Current page index (zero-based). Matches the `page` query parameter you sent.
+</ResponseField>
+
+<ResponseField name="size" type="integer" required>
+  Page size that was used for this response.
+</ResponseField>
+
+<ResponseField name="first" type="boolean" required>
+  `true` when this is the first page (`number == 0`).
+</ResponseField>
+
+<ResponseField name="last" type="boolean" required>
+  `true` when this is the last page (no further pages available).
+</ResponseField>
+
+<ResponseField name="empty" type="boolean" required>
+  `true` when `content` is an empty array (no results for the requested page).
+</ResponseField>
+
+## Example response
+
+`GET /api/movies?page=0&size=2&sort=releaseDate,desc`
+
+```json
+{
+  "content": [
+    {
+      "id": 4,
+      "title": "Avengers: Endgame",
+      "description": "Final battle",
+      "releaseDate": "2019-04-26",
+      "averageRating": 9.00,
+      "genres": ["ACTION", "ADVENTURE"],
+      "posterUrl": null
+    },
+    {
+      "id": 2,
+      "title": "Interstellar",
+      "description": "Space exploration and time",
+      "releaseDate": "2014-11-07",
+      "averageRating": 9.40,
+      "genres": ["SCI_FI", "DRAMA"],
+      "posterUrl": null
+    }
+  ],
+  "totalElements": 4,
+  "totalPages": 2,
+  "number": 0,
+  "size": 2,
+  "first": true,
+  "last": false,
+  "empty": false
+}
+```
+
+The `content` array contains `MovieResponse` objects. Use `totalPages` and `number` to build pagination controls in your UI, and check `last` to know when to disable a "Next page" button.

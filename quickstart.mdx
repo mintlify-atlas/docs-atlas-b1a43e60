@@ -1,80 +1,146 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quickstart'
+description: 'Get the CineFinder API running locally and make your first request.'
 ---
 
-## Get started in three steps
+<Note>
+  The H2 in-memory database profile (`dev`) is the easiest way to run CineFinder locally — no external database required.
+</Note>
 
-Get your documentation site running locally and make your first customization.
+<Steps>
 
-### Step 1: Set up your local environment
+  <Step title="Prerequisites">
+    Make sure you have the following installed before continuing:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    - **Java 17 or later** — verify with `java -version`
+    - **Gradle** — the project includes the Gradle wrapper (`./gradlew`), so a system-level install is optional
+    - **A database** — use H2 for local development (bundled) or Oracle/PostgreSQL for production
+  </Step>
 
-### Step 2: Deploy your changes
+  <Step title="Clone the repository">
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    ```bash
+    git clone https://github.com/challengezinho/cinefinder-java-advanced.git
+    cd cinefinder-java-advanced
+    ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Run with H2 (recommended for development)">
+    The `dev` Spring profile switches the datasource to an H2 in-memory database and applies the H2-compatible Flyway migrations automatically. No configuration is needed.
 
-### Step 3: Go live
+    ```bash
+    ./gradlew bootRun --args='--spring.profiles.active=dev'
+    ```
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    The application starts on port `8080`.
+  </Step>
+
+  <Step title="Run with Oracle (production)">
+    To connect to an Oracle database, update `src/main/resources/application.yaml` with your connection details:
+
+    ```yaml
+    spring:
+      datasource:
+        url: jdbc:oracle:thin:@<host>:<port>:<sid>
+        username: <your-username>
+        password: <your-password>
+        driver-class-name: oracle.jdbc.OracleDriver
+      jpa:
+        database-platform: org.hibernate.dialect.OracleDialect
+      flyway:
+        locations: classpath:db/migration/oracle
+    ```
+
+    Then start the application without a profile override:
+
+    ```bash
+    ./gradlew bootRun
+    ```
+  </Step>
+
+  <Step title="Verify the application is running">
+    Once the application starts, open Swagger UI in your browser to confirm it is healthy:
+
+    ```
+    http://localhost:8080/swagger-ui.html
+    ```
+
+    You can also check the OpenAPI spec directly:
+
+    ```bash
+    curl http://localhost:8080/v3/api-docs
+    ```
+  </Step>
+
+  <Step title="Register a user and receive a JWT token">
+    Register a new user account by sending a `POST` request to `/auth/register`. The response body is a JWT token string.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl -X POST http://localhost:8080/auth/register \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "Jon",
+        "email": "jon@email.com",
+        "password": "123456",
+        "age": 20
+      }'
+    ```
+
+    </CodeGroup>
+
+    **Response:**
+
+    ```
+    eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb25AZW1haWwuY29tIiwiaWF0IjoxNzA...
+    ```
+
+    Save this token — you will need it for all subsequent requests.
+  </Step>
+
+  <Step title="Make your first authenticated request">
+    Use the token from the previous step in the `Authorization` header to fetch the movie catalog:
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl http://localhost:8080/api/movies \
+      -H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9..."
+    ```
+
+    </CodeGroup>
+
+    A successful response returns a paginated list of movies:
+
+    ```json
+    {
+      "content": [
+        {
+          "id": 1,
+          "title": "Inception",
+          "description": "Filme sobre sonhos",
+          "releaseDate": "2010-07-16",
+          "averageRating": 9.60,
+          "genres": ["SCI_FI", "ACTION"],
+          "posterUrl": null
+        }
+      ],
+      "totalElements": 4,
+      "totalPages": 1,
+      "number": 0,
+      "size": 20,
+      "first": true,
+      "last": true,
+      "empty": false
+    }
+    ```
+  </Step>
+
+</Steps>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+- Read the [Authentication](/authentication) page to understand token expiry, roles, and error handling.
+- Explore the [Movies](/api/movies) and [Lists](/api/lists) API references for the full endpoint inventory.

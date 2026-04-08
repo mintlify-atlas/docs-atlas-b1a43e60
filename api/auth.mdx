@@ -1,0 +1,126 @@
+---
+title: 'Authentication endpoints'
+description: 'Register a new user or log in to obtain a JWT token.'
+---
+
+All endpoints in this group are under the `/auth` base path and do not require authentication.
+
+---
+
+## POST /auth/register
+
+Register a new user account. On success, returns a signed JWT token as a plain-text string.
+
+### Request body
+
+<ParamField body="name" type="string" required>
+  Display name for the user. Cannot be blank.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Must be a valid email address. Must be unique — registration fails if the address is already in use.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Account password. Minimum 6 characters. Stored as a BCrypt hash.
+</ParamField>
+
+<ParamField body="age" type="integer" required>
+  User age. Must be provided (non-null). Pass a value of 18 or greater — the `User` entity enforces `@Min(18)`.
+</ParamField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8080/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Jon",
+    "email": "jon@email.com",
+    "password": "123456",
+    "age": 20
+  }'
+```
+
+</CodeGroup>
+
+### Response
+
+**HTTP 200** — Registration succeeded. The response body is the JWT token as a plain-text string.
+
+```text 200
+eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb25AZW1haWwuY29tIi...
+```
+
+### Errors
+
+| Status | Condition |
+| ------ | --------- |
+| `400`  | Email address is already registered (`EmailAlreadyExists`). |
+| `400`  | Validation failure — invalid email format, null `age`, blank `name`, or `password` shorter than 6 characters. |
+
+**Error response body**
+
+```json 400
+{
+  "timestamp": "2026-04-08T14:00:00",
+  "status": 400,
+  "error": "EmailAlreadyExists",
+  "message": "Email já cadastrado",
+  "path": "/auth/register"
+}
+```
+
+---
+
+## POST /auth/login
+
+Authenticate with an existing account. Returns a signed JWT token as a plain-text string.
+
+### Request body
+
+<ParamField body="email" type="string" required>
+  Registered email address.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Account password.
+</ParamField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "jon@email.com",
+    "password": "123456"
+  }'
+```
+
+</CodeGroup>
+
+### Response
+
+**HTTP 200** — Authentication succeeded. The response body is the JWT token as a plain-text string.
+
+```text 200
+eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb25AZW1haWwuY29tIi...
+```
+
+### Errors
+
+| Status | Condition |
+| ------ | --------- |
+| `400`  | Invalid credentials — email not found or password does not match. |
+| `400`  | Validation failure — missing or malformed request body. |
+
+---
+
+<Note>
+  Store your token securely. It expires after 24 hours and you'll need to log in again to get a new one.
+</Note>

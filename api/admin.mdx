@@ -1,0 +1,103 @@
+---
+title: "Admin"
+description: "Administrative endpoints for managing users. Requires ADMIN role."
+---
+
+<Warning>
+  This endpoint is restricted to ADMIN users only. Attempting to call it with a regular user token returns `403 Forbidden`.
+</Warning>
+
+All endpoints under `/admin` require both a valid JWT token **and** the `ADMIN` role. Regular authenticated users will receive `403 Forbidden`.
+
+---
+
+## GET /admin
+
+Returns a list of all registered users in the system.
+
+### Required header
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token belonging to a user with the `ADMIN` role. Format: `Bearer <token>`.
+</ParamField>
+
+### Example request
+
+```bash cURL
+curl http://localhost:8080/admin \
+  -H "Authorization: Bearer <admin-token>"
+```
+
+### Response
+
+Returns an array of user objects. Passwords are never included in responses.
+
+<ResponseField name="id" type="integer" required>
+  Unique user identifier.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Display name of the user.
+</ResponseField>
+
+<ResponseField name="email" type="string" required>
+  Email address of the user.
+</ResponseField>
+
+<ResponseField name="age" type="integer" required>
+  Age of the user.
+</ResponseField>
+
+<ResponseField name="isAdmin" type="boolean" required>
+  Whether this user has admin privileges.
+</ResponseField>
+
+<Note>
+  The `password` field is annotated with `@JsonIgnore` in the `User` model and is never included in any API response.
+</Note>
+
+```json 200
+[
+  {
+    "id": 1,
+    "name": "Jon",
+    "email": "jon@email.com",
+    "age": 20,
+    "isAdmin": true
+  },
+  {
+    "id": 2,
+    "name": "Maria",
+    "email": "maria@email.com",
+    "age": 25,
+    "isAdmin": false
+  }
+]
+```
+
+### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `401 Unauthorized` | No token provided, or the token is malformed or expired. |
+| `403 Forbidden` | Token is valid but the authenticated user does not have the `ADMIN` role. |
+
+```json 401
+{
+  "timestamp": "2026-04-08T10:00:00",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Full authentication is required to access this resource",
+  "path": "/admin"
+}
+```
+
+```json 403
+{
+  "timestamp": "2026-04-08T10:00:00",
+  "status": 403,
+  "error": "Forbidden",
+  "message": "Access Denied",
+  "path": "/admin"
+}
+```

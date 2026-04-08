@@ -1,0 +1,130 @@
+---
+title: "Error handling"
+description: "Understanding CineFinder API error responses and HTTP status codes."
+---
+
+All errors returned by the CineFinder API share a single JSON structure, defined by the `ErrorResponse` record. This consistent envelope makes it straightforward to handle failures uniformly in your client.
+
+## Error response structure
+
+Every non-2xx response body looks like this:
+
+```json
+{
+  "timestamp": "2024-01-15T10:30:00",
+  "status": 404,
+  "error": "NoSuchElementException",
+  "message": "No value present",
+  "path": "/api/movies/999"
+}
+```
+
+### Fields
+
+<ResponseField name="timestamp" type="string" required>
+  ISO 8601 datetime of when the error occurred (e.g. `2024-01-15T10:30:00`). Matches `LocalDateTime` serialisation — no timezone offset.
+</ResponseField>
+
+<ResponseField name="status" type="integer" required>
+  The HTTP status code (e.g. `400`, `401`, `403`, `404`, `500`).
+</ResponseField>
+
+<ResponseField name="error" type="string" required>
+  The Java exception class simple name (e.g. `NoSuchElementException`, `EmailAlreadyExists`, `IllegalArgumentException`). For validation errors this is `MethodArgumentNotValidException`.
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  A human-readable description of what went wrong. For validation errors this contains field-level messages joined by `; `. See [Validation errors](#validation-errors-400) below.
+</ResponseField>
+
+<ResponseField name="path" type="string" required>
+  The request URI that triggered the error (e.g. `/api/movies/999`).
+</ResponseField>
+
+## HTTP status codes
+
+The `GlobalExceptionHandler` maps specific exception types to HTTP status codes:
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Bean Validation failure (missing required field, invalid email, password too short), duplicate email on registration, or `IllegalArgumentException` from service logic |
+| `401 Unauthorized` | Missing, malformed, or expired JWT token |
+| `403 Forbidden` | Valid token present but insufficient role — e.g. a non-admin user accessing any `/admin/**` endpoint |
+| `404 Not Found` | Requested resource does not exist — movie, review, or list ID not found (`NoSuchElementException`) |
+| `500 Internal Server Error` | Unhandled exception; indicates an unexpected server-side fault |
+
+## Validation errors (400)
+
+When a request body fails Bean Validation (e.g. `@NotBlank`, `@Email`, `@Size`), the `message` field concatenates all field violations into a single string:
+
+```json
+{
+  "timestamp": "2024-01-15T10:30:00",
+  "status": 400,
+  "error": "MethodArgumentNotValidException",
+  "message": "[name: must not be blank, email: must be a well-formed email address]",
+  "path": "/auth/register"
+}
+```
+
+The `RegisterDTO` enforces the following constraints:
+
+| Field | Constraint |
+|-------|-----------|
+| `name` | `@NotBlank` — must not be empty or whitespace |
+| `email` | `@Email` — must be a well-formed email address |
+| `password` | `@Size(min = 6)` — at least 6 characters |
+| `age` | `@NotNull` — must be provided |
+
+<Note>
+  The `age` field in `RegisterDTO` only requires a non-null value. The minimum age of 18 is enforced by the `@Min(18)` constraint on the `User` entity and results in a `500` if violated at the persistence layer; pass a valid adult age to avoid this.
+</Note>
+
+## Authentication and authorisation errors
+
+**401 Unauthorized** — returned by the `JwtFilter` when:
+- The `Authorization: Bearer <token>` header is absent
+- The token signature is invalid
+- The token has expired
+
+**403 Forbidden** — returned by Spring Security when the authenticated user lacks the `ADMIN` role required for `/admin/**` endpoints.
+
+<Warning>
+  The `/auth/register` and `/auth/login` endpoints are public and do not require a token. All other endpoints require a valid `Bearer` token.
+</Warning>
+
+## Handling errors in your client
+
+Use `curl -i` to inspect both headers and body in the same output:
+
+```bash
+curl -i http://localhost:8080/api/movies/999 \
+  -H "Authorization: Bearer <token>"
+```
+
+Example response for a missing resource:
+
+```
+HTTP/1.1 404
+Content-Type: application/json
+
+{
+  "timestamp": "2024-01-15T10:30:00",
+  "status": 404,
+  "error": "NoSuchElementException",
+  "message": "No value present",
+  "path": "/api/movies/999"
+}
+```
+
+<Note>
+  The `error` field is always the Java exception simple name — not the HTTP reason phrase. For example, a 404 returns `"NoSuchElementException"`, not `"Not Found"`.
+</Note>
+
+A straightforward client-side strategy:
+
+1. Check the HTTP status code first.
+2. Parse the `message` field for display or logging.
+3. For `400` errors, split the `message` string on `", "` to extract individual field violations if needed.
+4. For `401`, redirect the user to your login flow and clear the stored token.
+5. Log `500` errors with the full response body to aid debugging.
